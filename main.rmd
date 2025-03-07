@@ -1,0 +1,119 @@
+---
+title: "Coffee Shop Revenue Analysis"
+author: "Pranav Jayakumar"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+# Introduction
+
+## Dataset Information
+- **Dataset Link**: [https://www.kaggle.com/datasets/himelsarder/coffee-shop-daily-revenue-prediction-dataset]  
+- This dataset contains daily revenue data for a coffee shop, including:  
+  - Number of customers per day  
+  - Average order value  
+  - Operating hours  
+  - Marketing spend  
+  - Foot traffic  
+  - Daily revenue  
+
+## Motivation
+Understanding what factors drive daily revenue is crucial for optimizing business strategies. This analysis aims to:  
+- Identify key revenue drivers (customer count, order value, etc.).  
+- Assess how foot traffic correlates with customers.  
+- Evaluate marketing effectiveness.  
+
+## Summary Statistics
+```{r}
+library(dplyr)
+library(ggplot2)
+
+df <- read.csv("coffee_shop_revenue.csv")
+summary(df)
+```
+
+# Visualizations
+
+## Relationship between Two Quantitative Variables
+```{r}
+ggplot(df, aes(x = Number_of_Customers_Per_Day, y = Daily_Revenue)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "blue") +
+  labs(title = "Customers vs Revenue",
+       x = "Number of Customers Per Day",
+       y = "Daily Revenue")
+```
+**Interpretation:**  
+- There is a strong positive relationship between the number of customers and revenue.  
+- More customers generally lead to higher daily revenue.  
+
+## Relationship between a Categorical and Quantitative Variable
+```{r}
+df$Customers_High_Low <- ifelse(df$Number_of_Customers_Per_Day > median(df$Number_of_Customers_Per_Day), "High", "Low")
+ggplot(df, aes(x = Daily_Revenue, fill = Customers_High_Low)) +
+  geom_density(alpha = 0.5) +
+  labs(title = "Revenue Distribution: High vs. Low Customer Count",
+       x = "Daily Revenue",
+       y = "Density")
+```
+**Interpretation:**  
+- High-customer days tend to have significantly higher revenue compared to low-customer days.  
+
+# Dataset Manipulations
+
+## Using dplyr for Data Transformations
+```{r}
+df %>%
+  group_by(Customers_High_Low) %>%
+  summarize(Average_Revenue = mean(Daily_Revenue)) %>%
+  ggplot(aes(x = Customers_High_Low, y = Average_Revenue, fill = Customers_High_Low)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Average Revenue by Customer Group",
+       x = "Customer Count Group",
+       y = "Average Revenue")
+```
+**Insight:**  
+- The high customer count group consistently generates higher average revenue.  
+
+# Statistical Analyses
+
+## Correlation Analysis
+```{r}
+library(ggcorrplot)
+cor_matrix <- cor(df %>% select_if(is.numeric), use = "complete.obs")
+ggcorrplot(cor_matrix, method = "circle", type = "lower", lab = TRUE,
+           title = "Correlation Matrix")
+```
+**Interpretation:**  
+- Number of customers strongly correlates with daily revenue.  
+- Order value has a moderate correlation with revenue.  
+- Surprisingly, foot traffic has little to no effect on the number of customers or daily revenue, suggesting that customers generally do not go to coffee shops unprompted.  
+
+## Linear Regression
+```{r}
+lm_model <- lm(Daily_Revenue ~ Number_of_Customers_Per_Day, data = df)
+summary(lm_model)
+```
+**Interpretation:**  
+- Each additional customer increases revenue by about $5.55.  
+- The model predicts an average of $393.86 of daily revenue with no customers (possibly due to memberships, standing orders, etc.).  
+- The model explains a moderate portion of the model variation.  
+
+## T-Test
+```{r}
+t_test_result <- t.test(Daily_Revenue ~ Customers_High_Low, data = df)
+t_test_result
+```
+**Interpretation:**  
+- High-customer days result in significantly higher revenue.  
+- The difference is statistically significant (p-value < 0.05).  
+
+# Conclusion
+- Customer count is the strongest predictor of revenue.  
+- Order value also contributes but is less influential.  
+- Marketing strategies should focus on increasing customer traffic.  
+- Upselling strategies can help boost order value.  
+
+**Future Considerations:**  
+- Explore seasonal effects and promotions.  
+- Use a multiple regression model to refine predictions.  
